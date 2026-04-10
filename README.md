@@ -62,16 +62,108 @@ The system is designed to be scalable, secure, and easy to maintain by clearly s
 
 ```mermaid
 flowchart TB
-    Client["Client<br/>(UI / Swagger / Postman)"]
-    Controller["REST / GraphQL API Layer<br/>(Controllers)"]
-    Security["Security Layer<br/>(Spring Security / JWT)"]
-    Service["Business Layer<br/>(Services)"]
-    Repository["Persistence Layer<br/>(Spring Data JPA / Hibernate)"]
-    Database["Database<br/>(MySQL / PostgreSQL)"]
+    Client["Client\n(Web / Mobile / Swagger)"]
+    Gateway["API Gateway / Load Balancer"]
+    Controller["Controller Layer"]
+    Security["Security Layer\n(Auth & JWT)"]
+    Service["Service Layer"]
+    Repository["Repository Layer"]
+    Database["Database\n(MySQL / PostgreSQL)"]
+    Cache["Cache\n(Redis)"]
 
-    Client --> Controller
+    Client --> Gateway
+    Gateway --> Controller
     Controller --> Security
     Security --> Service
     Service --> Repository
     Repository --> Database
+    Service --> Cache
 ```
+#### Low-Level Architecture Diagram
+
+```mermaid
+flowchart TB
+    subgraph Client
+        UI["UI / Postman"]
+    end
+
+    subgraph Controller Layer
+        LoginController
+        LoanController
+        DashboardController
+    end
+
+    subgraph Service Layer
+        AuthService
+        LoanService
+        DashboardService
+        EmiCalculatorService
+    end
+
+    subgraph Repository Layer
+        UserRepository
+        LoanRepository
+    end
+
+    subgraph Database
+        DB[(MySQL / PostgreSQL)]
+    end
+
+    UI --> LoginController
+    UI --> LoanController
+    UI --> DashboardController
+
+    LoginController --> AuthService
+    LoanController --> LoanService
+    DashboardController --> DashboardService
+
+    LoanService --> EmiCalculatorService
+
+    AuthService --> UserRepository
+    LoanService --> LoanRepository
+    DashboardService --> LoanRepository
+
+    UserRepository --> DB
+    LoanRepository --> DB
+```
+## Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB
+
+    %% Login Flow
+    User->>Controller: Login Request
+    Controller->>Service: Validate User
+    Service->>Repository: Fetch User
+    Repository->>DB: Query User
+    DB-->>Repository: User Data
+    Repository-->>Service: User Data
+    Service-->>Controller: JWT Token
+    Controller-->>User: Login Success
+
+    %% Loan Offerings
+    User->>Controller: View Loan Offerings
+    Controller->>Service: Get Loan List
+    Service->>Repository: Fetch Loans
+    Repository->>DB: Query Loans
+    DB-->>Repository: Loan Data
+    Repository-->>Service: Loan List
+    Service-->>Controller: Response
+    Controller-->>User: Loan Details
+
+    %% Apply Loan
+    User->>Controller: Apply Loan
+    Controller->>Service: Create Loan
+    Service->>Repository: Save Loan
+    Repository->>DB: Insert Record
+    DB-->>Repository: Success
+    Repository-->>Service: Saved
+    Service-->>Controller: Confirmation
+    Controller-->>User: Loan Created
+```
+
